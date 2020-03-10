@@ -15,12 +15,14 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -38,6 +40,16 @@ public class WXActivityProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        HashMap<String, String> rootClasses = new HashMap<>();
+        Set<? extends Element> rootElements = roundEnv.getRootElements();
+        for (Element element : rootElements) {
+            if (element.getKind() == ElementKind.CLASS) {
+                PackageElement classElement = (PackageElement) element.getEnclosingElement();
+                String string = classElement.getQualifiedName().toString() + "." + element.getSimpleName();
+                rootClasses.put(string, string);
+            }
+        }
+
         Set<? extends Element> set = roundEnv.getElementsAnnotatedWith(WXActivity.class);
         for (Element element : set) {
             if (element.getKind() != ElementKind.CLASS) {
@@ -62,6 +74,11 @@ public class WXActivityProcessor extends AbstractProcessor {
             String targetPackageName = appId + ".wxapi";
 
             if (packageName.equals(targetPackageName)) {
+                continue;
+            }
+
+            // already exist
+            if (rootClasses.get(targetPackageName + "." + clazzName) != null) {
                 continue;
             }
 
